@@ -12,7 +12,7 @@ import os
 try:
 	import pygeoip
 
-except importError:
+except ImportError:
 	print "[!] Failed to import pygeoip"
 
 	try:
@@ -109,7 +109,7 @@ class Locator(object):
 				print'[DONE]'
 
 
-			elif choice.strip().lower()[0]='n':
+			elif choice.strip().lower()[0]=='n':
 				print '[!] user Denied auto-install'
 				sys.exit(1)
 
@@ -119,9 +119,57 @@ class Locator(object):
 
 
 
+	def query(self):
+		if not self.url:
+			print '[*] Translating %s: ' %(self.url)
+			sys.stdout.flush()
+
+			try:
+				self.target += socket.gethostbyname(self.url)
+				print self.target
+
+			except Exception:
+				print '\n [!] Failed to Resolve URL'
+				return
+
+			else:
+				self.target += self.ip
+
+			try:
+				print '[*] Querying for records of %s ...\n' %(self.target)
+				query_obj = pygeoip.GeoIP(self.datfile)
+				for key, val in query_obj.record_by_addr(self.target).items():
+					print '%s: %s' %(key, val)
+
+				print '[*] Query Complete!'
+			except Exception:
+				print '\n[!] Failed To Retrieve Records'
+				return
 
 
 
 
-		
-		
+if __name__ == '__main__':
+	import argparse
+	parser = argparse.ArgumentParser(description = 'IP Geolocation Tool')
+	parser.add_argument('--url', help='locate a IP based on URL', action='store', Default='False', dest='url')
+	parser.add_argument('-t', '--target', help='locate the specified IP ', action='store', Default='False', dest='ip')
+	parser.add_argument('--dat', help='Custom Database filepath', action='store', Default='False', dest='datfile')
+	args = parser.parse_args() 
+
+
+
+if ((not not args.url) and (not not args.ip) or (not args.url) and (not args.ip)):
+	parser.error('Invalid target specification')
+
+try:
+	Locator_object = Locator(url=args.url, ip=args.ip, datfile=args.datfile)
+	Locator_object.check_database()
+	Locator_object.query()
+
+except Exception:
+	print '\n\n [!] UNKNOWN ERROR OCCURED'
+
+except KeyboardInterrupt:
+	print '\n\n [!] UNEXPECTED USER interrupt'
+	sys.exit(1)
